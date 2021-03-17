@@ -1,0 +1,41 @@
+# IMPORT PYSERIAL
+
+import serial
+import time
+from serial import Serial
+
+ser = serial.Serial("COM3", 250000)
+
+""" time.sleep(5)
+ser.write(b'G1 X27\n')
+ser.flushInput()
+#ser.flushOutput()
+ser.write(b'M114\n')
+time.sleep(5)
+response3 =  ser.read(60)
+print(response3)
+print("-----------")
+print("-----------") """
+
+time.sleep(2)
+ser.write(b'G1 X50\n')
+ser.write(b'M300 S440 P200\n') #beep
+
+ser.write(b'M400\n')
+ser.write(b'G1 X0\n')
+ser.write(b'M400\n') #wait for movement to finish before continuing
+ser.write(b'M300 S440 P200\n')
+
+ser.flushInput()
+#ser.flushOutput()
+ser.write(b'M114\n') #get current position
+time.sleep(1)
+response3 =  ser.read(60) #read serial buffer
+print("-----------")
+print(response3)
+print("-----------")
+
+time.sleep(1)
+ser.close()
+
+
