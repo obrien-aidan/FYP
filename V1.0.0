@@ -1,0 +1,154 @@
+"""
+REFERENCE 1 = https://github.com/ajinkyapadwad/OpenCV-with-Tkinter/blob/master/video.py
+"""
+
+import cv2
+from cv2 import cv2
+import tkinter as tk
+from tkinter import *
+from PIL import Image as Img
+from PIL import ImageTk
+import serial
+import time
+from serial import Serial
+import serial
+import time
+from serial import Serial
+import numpy as np
+ser = serial.Serial("COM3", 250000)
+
+# from tkinter import ttk
+# from ttk import Frame
+# import Image, ImageTk
+
+white = "#ffffff"
+lightBlue2 = "#305f72"
+font = "Constantia"
+fontButtons = (font, 12)
+# maxWidth  	= 800
+# maxHeight 	= 480
+
+# Graphics window
+mainWindow = tk.Tk()
+mainWindow.configure(bg=lightBlue2)
+mainWindow.geometry('1200x680+0+0')
+
+# mainWindow.resizable(0,0)
+# creating Frame for video
+mainFrame = Frame(mainWindow, bg=lightBlue2)
+mainFrame.pack(side=TOP, anchor=CENTER, fill='x')
+
+# mainWindow.overrideredirect(1)
+
+# Capture video frames in a label
+lmain = tk.Label(mainFrame, cursor='crosshair') # change the cursor into crosshair
+lmain.pack(side=LEFT, anchor=NW, padx=5, pady=5)
+#  creating 3rd frame
+frame3 = tk.Frame(mainFrame, width=650, height=400)
+frame3.pack(side=RIGHT, anchor=NE, padx=5, pady=5)
+
+
+# creating 2nd frame
+frame2=tk.Frame(mainWindow)
+# adding List Box with scrollbar
+scrollbar = Scrollbar(frame2, orient=VERTICAL) # scrollbar
+# listbox  selectmode means user can click on multiple values in the listbox
+list_box = Listbox(frame2, selectmode="multiple", font=('Times New Roman', 20, 'bold'),
+                   height=6, width=150, yscrollcommand=scrollbar.set)
+scrollbar.config(command=list_box.yview) # config the scrollbar in y-axis
+# packing scrollbar, listbox, frame2
+scrollbar.pack(side=RIGHT, fill=Y)
+list_box.pack()
+frame2.pack(side=TOP, pady=10, padx=5)
+
+############################################
+pos_listX=[] # creating list or array to store x and y axis
+pos_listY=[] # creating list or array to store x and y axis
+# function to get the x and y axis of image
+def getorigin(eventorigin):
+    x0 = eventorigin.x  # storing x position in x0
+    y0 = eventorigin.y  # storing y position in xy
+    # storing x and y position in pos
+    pos = 'X axis = ' + f'{x0}'+'   '+'Y axis = ' + f'{y0}'
+    # combining x and y position for storing in array or list
+    list_valueX=(x0)
+    list_valueY=(y0)
+    # inserting x and y position in list or array
+    pos_listX.append((list_valueX))
+    pos_listY.append((list_valueY))
+    # show x and y position in listbox
+    list_box.insert(0,pos)
+    # placing labels on the image on each click
+    l1=Label(mainWindow, text='('+f'{x0}'+','+f'{y0}'+')', font=('Times New Roman', 7), bg='lightgray')
+    l1.place(x=x0,y=y0)
+    print (pos)
+    print(pos_listX)
+    print(pos_listY)
+    print(len(pos_listX))
+    print(len(pos_listY))
+
+
+# binding mouseclick event image
+lmain.bind("<Button 1>", getorigin)
+
+#button itterate
+""" xprint = [float(i)  for val in pos_listX for i in pos_listX]
+xprint1 = (float(xprint) * 0.25)
+yprint = [float(i)  for val in pos_listY for i in pos_listY]
+yprint1 = (float(yprint) * 0.25) """
+
+""" xprint1 = [i * 2 for i in pos_listX]
+yprint1 = [i * 2 for i in pos_listY] """
+""" xprint1 = 0.25*np.array(pos_listX)
+yprint1 = 0.25*np.array(pos_listY) """
+
+def itterateCallBack():
+    xprint1 = 0.25*np.array(pos_listX)
+    xprint2 = np.round(xprint1)
+    xprint3 = [round(x) for x in xprint2]
+    yprint1 = 0.25*np.array(pos_listY)
+    yprint2 = np.round(yprint1)
+    yprint3 = [round(y) for y in yprint2]
+    for i, val in enumerate(yprint3):
+        print (i, ",",xprint3[i],yprint3[i])
+        xval = 'G1 X'+ str(xprint3[i]) +' Y'+ str(xprint3[i])
+        #ser.write(b'G1 X'+ xprint3[i] +'\n')
+        #time.sleep(1)
+        #ser.write(b'{xval}\n')
+        val=f'{xval}\n'
+        import struct
+        #ser.write(b'G1 X72\n')
+        print(val)
+        ser.write(bytes(val, 'UTF-8'))
+        #time.sleep(5)
+        #print (xval)
+ 
+
+#start button
+closeButton = Button(mainWindow, text="START", font=fontButtons, bg=white, width=20, height=1, command=itterateCallBack)
+#closeButton.configure(command=lambda: mainWindow.quit())
+closeButton.pack(side=BOTTOM)
+
+
+
+# starting camera
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap.set(cv2.CAP_PROP_EXPOSURE,-5.5)
+
+# function to show image in frame
+def show_frame():
+    ret, frame = cap.read()# reading webcam video
+    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)  # converting color into cv2.COLOR_BGR2RGBA
+    rotated1 = cv2.rotate(cv2image,cv2.ROTATE_90_CLOCKWISE)
+    #rotated2 = cv2.rotate(rotated1,cv2.ROTATE_90_CLOCKWISE)
+    #rotated3 = cv2.rotate(rotated2,cv2.ROTATE_90_CLOCKWISE)
+    img = Img.fromarray(rotated1).resize((400, 400))  # giving size to the video/image screen
+    imgtk = ImageTk.PhotoImage(image=img)  # add the image into tkinter
+    # showing the image in tkinter window
+    lmain.imgtk = imgtk
+    lmain.configure(image=imgtk)
+    # calling same function for resetting the image after 10 ms
+    lmain.after(10, show_frame)
+
+show_frame()  # Display
+mainWindow.mainloop()  # Starts GUI
