@@ -15,12 +15,21 @@ import serial
 import time
 import numpy as np
 from tkinter import ttk
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
+
 #----------- / INPUT-----------
 
 #-----------PORT SETUP-----------
-ser = serial.Serial("COM7", 250000) #robto
-ser1 = serial.Serial("COM5", 57600) #LA
+ser = serial.Serial("COM7", 250000)
+time.sleep(5)
+ser.write(b'G28 X Y\n')
+time.sleep(1)
+ser.write(b'G90\n')
+time.sleep(1)
+ser1 = serial.Serial("COM9", 57600)
+ser2 = serial.Serial("COM5", 9600)
 # starting camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
@@ -31,7 +40,7 @@ cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
 # Window
 white = "#ffffff"
 lightBlue2 = "#305f72"
-font = "Constantia"
+font = "Helvetica"
 fontButtons = (font, 12)
 mainWindow = tk.Tk()
 mainWindow.configure(bg=lightBlue2)
@@ -51,22 +60,29 @@ index = 0  # first index
 Entry1_list = []  # list that contain all the X entries
 Entry2_list = []  # list that contain all the Y entries
 combobox_list = []  # list that contain all the combo-box
-
+Entry3_list = []  # list that contain all the Voltage entries
+Entry4_list = []  # list that contain all the Current entries
+Entry5_list = []  # list that contain all the On Time duration entries
 def dynamic_entry(index):
-    Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1))
+    Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
     Entry1_list[index].grid(row=index + 1, column=0)
-    Entry2_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1))
+    Entry2_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
     Entry2_list[index].grid(row=index + 1, column=1)
-    combobox_list.append(ttk.Combobox(frame2, width=20, values=(
+    combobox_list.append(ttk.Combobox(frame2, width=15, values=(
         'CAPTURE', 'CAPTURE1', 'CAPTURE2', 'CAPTURE3', 'CAPTURE4', 'CAPTURE5'), state='readonly'))
     combobox_list[index].grid(row=index + 1, column=2)
     combobox_list[index].current()
-
+    Entry3_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    Entry3_list[index].grid(row=index + 1, column=3)
+    Entry4_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    Entry4_list[index].grid(row=index + 1, column=4)
+    Entry5_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    Entry5_list[index].grid(row=index + 1, column=5)
 # creating new frame for canvas
 Main_Scrollbar_frame = LabelFrame(mainWindow, text="Input", width=400, height=200, pady=5, padx=5,
                                   bg='White', font=('Arial', 16, "bold"))
 # creating canvas and scrollbar to show multiple row and column Entries
-canvas = Canvas(Main_Scrollbar_frame, bg='lightblue', width=430, height=100)
+canvas = Canvas(Main_Scrollbar_frame, bg='grey', width=1300, height=100)
 scrollbar = ttk.Scrollbar(Main_Scrollbar_frame, orient=VERTICAL
                           , command=canvas.xview)
 # configure the scrollbar at canvas
@@ -88,6 +104,9 @@ Main_Scrollbar_frame.pack(side=TOP, padx=10, pady=10)
 a = Label(frame2, text="X", font=('Arial', 10, 'bold')).grid(row=0, column=0)
 b = Label(frame2, text="Y", font=('Arial', 10, 'bold')).grid(row=0, column=1)
 c = Label(frame2, text="CAPTURE RANGE", font=('Arial', 10, 'bold')).grid(row=0, column=2)
+Label(frame2, text="VOLTAGE", font=('Arial', 10, 'bold')).grid(row=0, column=3)
+Label(frame2, text="CURRENT", font=('Arial', 10, 'bold')).grid(row=0, column=4)
+Label(frame2, text="WARM-UP TIME", font=('Arial', 10, 'bold')).grid(row=0, column=5)
 # function calling to insert first row and column entries
 dynamic_entry(index) 
 # function for update the scrollbar
@@ -98,11 +117,21 @@ def reset_scrollregion(event):
 #  creating Frame3 (right)
 frame3 = tk.Frame(mainFrame, width=650, height=400)
 frame3.pack(side=RIGHT, anchor=NE, padx=15, pady=5)
-scrollbar = Scrollbar(frame3, orient=VERTICAL)
-list_box = Listbox(frame3, selectmode="multiple", height=25, width=100, yscrollcommand=scrollbar.set)
+frame3_1=tk.Frame(frame3)
+frame3_1.pack(fill='x')
+frame3_2=tk.Frame(frame3)
+frame3_2.pack(fill='x')
+scrollbar = Scrollbar(frame3_1, orient=VERTICAL)
+list_box = Listbox(frame3_1, selectmode="multiple", height=6, width=100, yscrollcommand=scrollbar.set)
 scrollbar.config(command=list_box.yview)
 scrollbar.pack(side=RIGHT, fill=Y)
 list_box.pack(fill='x', expand=1)
+global canvas_xy
+def polt_canvas():
+    global canvas_xy
+    canvas_xy = Canvas(frame3_2, bg='grey', width=500, height=300)
+    canvas_xy.pack(side=TOP, fill="x")  # placing it on window
+polt_canvas()
 #----------- / WINDOW/FRAME SETUP-----------
 
 #-----------FUNCTION SETUP-----------
@@ -123,20 +152,26 @@ def show_frame():
 xchromArray = []
 ychromArray = []
 intensityArray = []
+
 def plots():
+    f = Figure(figsize=(7, 3.5), dpi=80)  # Creating figure
+    a = f.add_subplot(111) # assigning a the add plot
+    canvas_xy.destroy()
+    polt_canvas()
     if len(intensityArray) != 0:
         index_list=[]
         for i in range(len(intensityArray)):
             index_list.append(i)
-        plt.close()
-        plt.plot(index_list, intensityArray)
-        plt.title("Plot Graph")
-        plt.ylabel("Intensity")
-        plt.xlabel("Index")
-        plt.show()
+        print(index_list, intensityArray)
 
-
-
+        a.plot(index_list, intensityArray)
+        #plt.title("Plot Graph")
+        a.set_ylabel("Intensity")
+        a.set_xlabel("Measurement Number")
+        # Creating canvas for plot
+        canvas_1 = FigureCanvasTkAgg(f, master=canvas_xy)
+        canvas_1.draw()  # showing plot
+        canvas_1.get_tk_widget().pack(pady=5, padx=5)  # placing canvas on window
 
 
 # read back from led analyser
@@ -164,15 +199,21 @@ def la_buffer_read():
         print(xchromArray)
         print(ychromArray)
         print(intensityArray)
-        list_box.insert(0, response3)
+        response4 = index,":", 'X Chromaticity: ',xchromf,' Y Chromaticity: ',ychromf,' Intensity: ',intensityint
+        list_box.insert(len(intensityArray), response4 )
         ser1.flushInput()
-        plt.show()
+        #plt.show()
     print('+++++++++++++++++++++++++++')
     time.sleep(1)
 
 # start button
-startButton = Button(mainWindow, text="START", font=fontButtons, bg=white, width=20, height=1, command=lambda :itterateCallBack())
-startButton.pack(side=TOP)
+startButton = Button(mainWindow, text="START", font=fontButtons, bg='#32a83e',fg='white', width=20, height=2, command=lambda :itterateCallBack())
+startButton.place(x=430, y=100)
+#startButton.pack(side=TOP)
+# stop button
+stopButton = Button(mainWindow, text="STOP", font=fontButtons, bg='red',fg='white', width=20, height=2)
+stopButton.place(x=430, y=170)
+#startButton.pack(side=TOP)
 
 #----------- / FUNCTION SETUP -----------
 
@@ -180,6 +221,9 @@ startButton.pack(side=TOP)
 pos_listX = []  # creating list or array to store x and y axis
 pos_listY = []  # creating list or array to store x and y axis
 Capture_Selection=[]
+Voltage_list = []
+Current_list = []
+On_time_duration_list = []
 
 # function to get the x and y axis of image
 def getorigin(eventorigin):
@@ -211,26 +255,46 @@ lmain.bind("<Button 1>", getorigin)
 
 # button itterate
 def itterateCallBack():
-    print('hello')
     for i in range(len(pos_listY)):
         Capture_Selection.append(combobox_list[i].get())
+        Voltage_list.append(Entry3_list[i].get())
+        Current_list.append(Entry4_list[i].get())
+        On_time_duration_list.append(Entry5_list[i].get())
+
     print(Capture_Selection)
-    xprint1 = 0.25 * np.array(pos_listX)
+    xprint1 = 0.5 * np.array(pos_listX)
     xprint2 = np.round(xprint1)
     xprint3 = [round(x) for x in xprint2]
-    yprint1 = 0.25 * np.array(pos_listY)
-    yprint2 = np.round(yprint1)
+    yprint1 = -1 * np.array(pos_listY)
+    yprint1half = yprint1 + 385
+    yprint2 = np.round(yprint1half)
     yprint3 = [round(y) for y in yprint2]
     for i, val in enumerate(yprint3):
         #G-CODE
         print(i, ",", xprint3[i], yprint3[i])
-        xval = 'G1 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
+        xval = 'G0 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
         print(i)
         val = f'{xval}\n'
         import struct
         print(val)
-        ser.write(b'm400\n')
+        ser.write(b'M400\n')
         ser.write(bytes(val, 'UTF-8'))
+
+
+        #POWER
+        voltageSend = f'VSET1:{Voltage_list[i]}\n'
+        print("VOLTAGE",voltageSend)
+        ser2.write(bytes(voltageSend, 'UTF-8'))
+        currentSend = f'ISET1:{Current_list[i]}\n'
+        print(currentSend)
+        ser2.write(bytes(currentSend, 'UTF-8'))
+        time.sleep(5) #wait for movement to finished before turing ON
+        ser2.write(b'OUT1')
+        onTime = On_time_duration_list[i]
+        onTimeInt = int(onTime)
+        time.sleep(onTimeInt)
+        print("ON-TIME",i,onTimeInt)
+        
         #CAPTURE
         Capture = f'{Capture_Selection[i]}\n'
         print(Capture)
@@ -240,7 +304,14 @@ def itterateCallBack():
         ser1.write(b'getxyi01\n')
         time.sleep(1)
         la_buffer_read()
+        time.sleep(2)
+        ser2.write(b'OUT0') #turn off power supply 
+        time.sleep(2)
     plots()
+    ser.write(b'G28 X Y\n')
+
+
+
 
 
 """ # start button
