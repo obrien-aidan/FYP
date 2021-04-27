@@ -22,14 +22,14 @@ from matplotlib.figure import Figure
 #----------- / INPUT-----------
 
 #-----------PORT SETUP-----------
-ser = serial.Serial("COM7", 250000)
+ser = serial.Serial("COM3", 250000)
 time.sleep(5)
 ser.write(b'G28 X Y\n')
 time.sleep(1)
 ser.write(b'G90\n')
 time.sleep(1)
-ser1 = serial.Serial("COM9", 57600)
-ser2 = serial.Serial("COM5", 9600)
+ser1 = serial.Serial("COM6", 57600)
+#ser2 = serial.Serial("COM5", 9600)
 # starting camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
@@ -255,6 +255,8 @@ lmain.bind("<Button 1>", getorigin)
 
 # button itterate
 def itterateCallBack():
+    mainWindow.config(cursor="wait")
+    mainWindow.update()
     for i in range(len(pos_listY)):
         Capture_Selection.append(combobox_list[i].get())
         Voltage_list.append(Entry3_list[i].get())
@@ -280,16 +282,15 @@ def itterateCallBack():
         ser.write(b'M400\n')
         ser.write(bytes(val, 'UTF-8'))
 
-
         #POWER
         voltageSend = f'VSET1:{Voltage_list[i]}\n'
         print("VOLTAGE",voltageSend)
-        ser2.write(bytes(voltageSend, 'UTF-8'))
+        #ser2.write(bytes(voltageSend, 'UTF-8'))
         currentSend = f'ISET1:{Current_list[i]}\n'
         print(currentSend)
-        ser2.write(bytes(currentSend, 'UTF-8'))
+        #ser2.write(bytes(currentSend, 'UTF-8'))
         time.sleep(5) #wait for movement to finished before turing ON
-        ser2.write(b'OUT1')
+        #ser2.write(b'OUT1')
         onTime = On_time_duration_list[i]
         onTimeInt = int(onTime)
         time.sleep(onTimeInt)
@@ -305,9 +306,10 @@ def itterateCallBack():
         time.sleep(1)
         la_buffer_read()
         time.sleep(2)
-        ser2.write(b'OUT0') #turn off power supply 
+        #ser2.write(b'OUT0') #turn off power supply 
         time.sleep(2)
     plots()
+    mainWindow.config(cursor="")
     ser.write(b'G28 X Y\n')
 
 
