@@ -18,40 +18,100 @@ from tkinter import ttk
 #from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+import serial.tools.list_ports
+from PIL import Image
+import PIL
+
+
+
 
 #----------- / INPUT-----------
 
 #-----------PORT SETUP-----------
-ser = serial.Serial("COM7", 250000)
-ser1 = serial.Serial("COM9", 57600)
-ser2 = serial.Serial("COM5", 9600)
+
+robotSer = serial.Serial("COM3", 250000)
+time.sleep(5)
+robotSer.write(b'G28 X Y\n')
+time.sleep(1)
+robotSer.write(b'G90\n')
+time.sleep(1)
+laSer = serial.Serial("COM6", 57600)
+#ser2 = serial.Serial("COM5", 9600)
 # starting camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
+
+
+
+
+
+
 #----------- / PORT SETUP-----------
 
 
 #-----------WINDOW/FRAME SETUP-----------
 # Window
+#https://colorhunt.co/palette/273305
 white = "#ffffff"
-lightBlue2 = "#305f72"
-font = "Constantia"
+lightBlue2 = "#393e46"
+font = "Helvetica"
 fontButtons = (font, 12)
 mainWindow = tk.Tk()
+mainWindow.iconbitmap(r'C:\Users\Aidan\Documents\1.FYP\logo_R8v_icon.ico')
+mainWindow.title(' AOB FYP | Vision-Based Robotic System')
 mainWindow.configure(bg=lightBlue2)
 w = mainWindow.winfo_screenwidth()
 h = mainWindow.winfo_screenheight() - 10
 mainWindow.geometry("%dx%d+0+0" % (w, h))
 
+# menus #https://www.youtube.com/watch?v=PSm-tq5M-Dc
+menu = Menu(mainWindow)
+mainWindow.config(menu=menu)
+
+fileMenu = Menu(menu, tearoff=False, background='#aad8d3')
+menu.add_cascade(label='File',menu=fileMenu)
+fileMenu.add_separator()
+fileMenu.add_command(label="Exit",command=mainWindow.destroy)
+
+helpMenu = Menu(menu, tearoff=False, background='#aad8d3')
+menu.add_cascade(label='Help',menu=helpMenu)
+helpMenu.add_separator()
+helpMenu.add_command(label="About",command=mainWindow.destroy)
+
+#toolbar
+toolbar = Frame(mainWindow, background="#eeeeee")
+toolbar.pack(side=TOP, fill=X)
+
+##run
+#https://dryicons.com/free-icons/play
+run_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\play.png')
+small = run_btn.subsample(35,35)
+runButt = Button(toolbar, command=lambda :itterateCallBack(), image=small, highlightthickness = 0, bd = 0)
+runButt.pack(side=LEFT, padx=15, pady=10)
+##stop
+stop_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\stop.png')
+small1 = stop_btn.subsample(35,35)
+stopButt = Button(toolbar, command=mainWindow.destroy, image=small1, highlightthickness = 0, bd = 0)
+stopButt.pack(side=LEFT, padx=15, pady=10)
+##home
+
+
+""" 
+labelframe = LabelFrame(mainWindow, text="This is a LabelFrame")
+labelframe.pack(fill="both", expand="yes") """
+
+
 # creating Frame for video
 mainFrame = Frame(mainWindow, bg=lightBlue2)
 mainFrame.pack(side=TOP, anchor=CENTER, fill='x')
 lmain = tk.Label(mainFrame, cursor='crosshair')  # change the cursor into crosshair
-lmain.pack(side=LEFT, anchor=NW, padx=5, pady=5)
+lmain.pack(side=LEFT, anchor=CENTER, padx=5, pady=5)
+
 
 # creating 2nd frame
 global index
 index = 0  # first index
+a_list = [] #index counter
 Entry1_list = []  # list that contain all the X entries
 Entry2_list = []  # list that contain all the Y entries
 combobox_list = []  # list that contain all the combo-box
@@ -59,25 +119,27 @@ Entry3_list = []  # list that contain all the Voltage entries
 Entry4_list = []  # list that contain all the Current entries
 Entry5_list = []  # list that contain all the On Time duration entries
 def dynamic_entry(index):
+    a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
+    a_list[index].grid(row=index + 1, column=0,)
     Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
-    Entry1_list[index].grid(row=index + 1, column=0)
+    Entry1_list[index].grid(row=index + 1, column=1)
     Entry2_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
-    Entry2_list[index].grid(row=index + 1, column=1)
+    Entry2_list[index].grid(row=index + 1, column=2)
     combobox_list.append(ttk.Combobox(frame2, width=15, values=(
         'CAPTURE', 'CAPTURE1', 'CAPTURE2', 'CAPTURE3', 'CAPTURE4', 'CAPTURE5'), state='readonly'))
-    combobox_list[index].grid(row=index + 1, column=2)
+    combobox_list[index].grid(row=index + 1, column=3)
     combobox_list[index].current()
     Entry3_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
-    Entry3_list[index].grid(row=index + 1, column=3)
+    Entry3_list[index].grid(row=index + 1, column=4)
     Entry4_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
-    Entry4_list[index].grid(row=index + 1, column=4)
+    Entry4_list[index].grid(row=index + 1, column=5)
     Entry5_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
-    Entry5_list[index].grid(row=index + 1, column=5)
+    Entry5_list[index].grid(row=index + 1, column=6)
 # creating new frame for canvas
 Main_Scrollbar_frame = LabelFrame(mainWindow, text="Input", width=400, height=200, pady=5, padx=5,
-                                  bg='White', font=('Arial', 16, "bold"))
+                                  font=('Arial', 16, "bold"), fg="#00adb5",background="#393e46")
 # creating canvas and scrollbar to show multiple row and column Entries
-canvas = Canvas(Main_Scrollbar_frame, bg='lightblue', width=830, height=100)
+canvas = Canvas(Main_Scrollbar_frame, bg='#eeeeee', width=1300, height=100)
 scrollbar = ttk.Scrollbar(Main_Scrollbar_frame, orient=VERTICAL
                           , command=canvas.xview)
 # configure the scrollbar at canvas
@@ -86,7 +148,7 @@ canvas.configure(yscrollcommand=scrollbar.set)
 canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 # creating a new frame on canvas to display row and column Entries
 frame2 = Frame(canvas, padx=2, pady=2)
-frame2.config(bg="White")
+frame2.config(bg="#eeeeee")
 frame2.pack(side=TOP, pady=10, padx=5)
 # creating a canvas window on frame2
 canvas.create_window((0, 0), window=frame2, anchor='sw')
@@ -96,12 +158,13 @@ scrollbar.pack(side="right", fill="y")
 canvas.pack(side="top", fill="x")
 # Closing frame
 Main_Scrollbar_frame.pack(side=TOP, padx=10, pady=10)
-a = Label(frame2, text="X", font=('Arial', 10, 'bold')).grid(row=0, column=0)
-b = Label(frame2, text="Y", font=('Arial', 10, 'bold')).grid(row=0, column=1)
-c = Label(frame2, text="CAPTURE RANGE", font=('Arial', 10, 'bold')).grid(row=0, column=2)
-Label(frame2, text="VOLTAGE", font=('Arial', 10, 'bold')).grid(row=0, column=3)
-Label(frame2, text="CURRENT", font=('Arial', 10, 'bold')).grid(row=0, column=4)
-Label(frame2, text="ON-TIME", font=('Arial', 10, 'bold')).grid(row=0, column=5)
+Label(frame2, text="Num:",  bg='#eeeeee',fg="#393e46",font=('Arial', 7, 'bold')).grid(row=0, column=0)
+a = Label(frame2, text="X", bg='#eeeeee',fg="#393e46", font=('Arial', 7, 'bold')).grid(row=0, column=1)
+b = Label(frame2, text="Y", bg='#eeeeee',fg="#393e46", font=('Arial', 7, 'bold')).grid(row=0, column=2)
+c = Label(frame2, text="CAPTURE RANGE",  bg='#eeeeee',fg="#393e46",font=('Arial', 7, 'bold')).grid(row=0, column=3)
+Label(frame2, text="VOLTAGE",  bg='#eeeeee',fg="#393e46",font=('Arial', 7, 'bold')).grid(row=0, column=4)
+Label(frame2, text="CURRENT",  bg='#eeeeee',fg="#393e46",font=('Arial', 7, 'bold')).grid(row=0, column=5)
+Label(frame2, text="WARM-UP TIME",  bg='#eeeeee',fg="#393e46",font=('Arial', 7, 'bold')).grid(row=0, column=6)
 # function calling to insert first row and column entries
 dynamic_entry(index) 
 # function for update the scrollbar
@@ -124,9 +187,23 @@ list_box.pack(fill='x', expand=1)
 global canvas_xy
 def polt_canvas():
     global canvas_xy
-    canvas_xy = Canvas(frame3_2, bg='orange', width=500, height=300)
+    canvas_xy = Canvas(frame3_2, bg='grey', width=500, height=300)
     canvas_xy.pack(side=TOP, fill="x")  # placing it on window
 polt_canvas()
+
+# status bar 
+# https://www.youtube.com/watch?v=FqIKEW-S8W0
+status = Label(mainWindow, text="status..",bd=1,relief=SUNKEN, anchor=W, background='#aad8d3')
+status.pack(side=BOTTOM, fill=X)
+##home
+home_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\home.png')
+small2 = home_btn.subsample(30,30)
+homeButt = Button(toolbar, command=lambda:[robotSer.write(b'G28 X Y\n'),status.config(text = "G28 Axis Homing...")], image=small2, highlightthickness = 0, bd = 0)
+homeButt.pack(side=LEFT, padx=15, pady=10)
+
+
+
+
 #----------- / WINDOW/FRAME SETUP-----------
 
 #-----------FUNCTION SETUP-----------
@@ -149,7 +226,7 @@ ychromArray = []
 intensityArray = []
 
 def plots():
-    f = Figure(figsize=(5, 3.7), dpi=80)  # Creating figure
+    f = Figure(figsize=(7, 3.5), dpi=80)  # Creating figure
     a = f.add_subplot(111) # assigning a the add plot
     canvas_xy.destroy()
     polt_canvas()
@@ -161,22 +238,25 @@ def plots():
 
         a.plot(index_list, intensityArray)
         #plt.title("Plot Graph")
-        a.set_ylabel("Intensity #")
-        a.set_xlabel("Index #")
+        a.set_ylabel("Intensity")
+        a.set_xlabel("Measurement Number")
         # Creating canvas for plot
         canvas_1 = FigureCanvasTkAgg(f, master=canvas_xy)
         canvas_1.draw()  # showing plot
-        canvas_1.get_tk_widget().pack(pady=10, padx=10)  # placing canvas on window
+        canvas_1.get_tk_widget().pack(pady=5, padx=5)  # placing canvas on window
+        status.config(text = "plotting...")
+        mainWindow.update()
 
 
 # read back from led analyser
 def la_buffer_read():
-    time.sleep(1)
-    num = ser1.inWaiting()
+    status.config(text = "reading LA buffer...")
+    mainWindow.config(cursor="wait")
+    num = laSer.inWaiting()
     #print('num bytes:',num)
     #list_box.insert(0,num)
-    while ser1.inWaiting()>1:
-        response2=ser1.readline()
+    while laSer.inWaiting()>1:
+        response2=laSer.readline()
         response3=response2.decode("utf-8")
         print(response3)
         n = 7
@@ -194,15 +274,24 @@ def la_buffer_read():
         print(xchromArray)
         print(ychromArray)
         print(intensityArray)
-        list_box.insert(0, response3)
-        ser1.flushInput()
+        response4 = index,":", 'X Chromaticity: ',xchromf,' Y Chromaticity: ',ychromf,' Intensity: ',intensityint
+        status.config(text = response4)
+        mainWindow.update()
+        list_box.insert(len(intensityArray), response4 )
+        laSer.flushInput()
         #plt.show()
     print('+++++++++++++++++++++++++++')
     time.sleep(1)
 
-# start button
-startButton = Button(mainWindow, text="START", font=fontButtons, bg=white, width=20, height=1, command=lambda :itterateCallBack())
-startButton.pack(side=TOP)
+""" # start button
+startButton = Button(mainWindow, text="START", font=fontButtons, bg='#32a83e',fg='white', width=20, height=2, command=lambda :itterateCallBack())
+startButton.pack(side=LEFT, anchor=NW)
+# stop button
+stopButton = Button(mainWindow, text="STOP", font=fontButtons, bg='red',fg='white', width=20, height=2)
+stopButton.pack(side=LEFT, anchor=NW) """
+
+
+
 
 #----------- / FUNCTION SETUP -----------
 
@@ -232,6 +321,8 @@ def getorigin(eventorigin):
     pos_listY.append((list_valueY))
     Entry1_list[index].insert(0, pos_listX[index])
     Entry2_list[index].insert(0, pos_listY[index])
+    a_list[index].insert(0, [index])
+
     dynamic_entry(index + 1)  # inserting new row and col in frame2
     frame2.bind("<Configure>", reset_scrollregion)  # bind reset scrollbar function
     l1 = Label(mainWindow, text='(' + f'{x0}' + ',' + f'{y0}' + ')', font=('Times New Roman', 7), bg='lightgray')
@@ -244,6 +335,8 @@ lmain.bind("<Button 1>", getorigin)
 
 # button itterate
 def itterateCallBack():
+    mainWindow.config(cursor="wait")
+    mainWindow.update()
     for i in range(len(pos_listY)):
         Capture_Selection.append(combobox_list[i].get())
         Voltage_list.append(Entry3_list[i].get())
@@ -261,39 +354,51 @@ def itterateCallBack():
     for i, val in enumerate(yprint3):
         #G-CODE
         print(i, ",", xprint3[i], yprint3[i])
-        xval = 'G1 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
+        xval = 'G0 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
         print(i)
         val = f'{xval}\n'
         import struct
         print(val)
-        ser.write(b'm400\n')
-        ser.write(bytes(val, 'UTF-8'))
+        status.config(text = xval)
+        mainWindow.update()
+        robotSer.write(b'M400\n')
+        robotSer.write(bytes(val, 'UTF-8'))
 
         #POWER
         voltageSend = f'VSET1:{Voltage_list[i]}\n'
         print("VOLTAGE",voltageSend)
-        ser2.write(bytes(voltageSend, 'UTF-8'))
-        time.sleep(2)
-        #currentSend = f'{Current_list[i]}\n'
-        #print(currentSend)
+        #ser2.write(bytes(voltageSend, 'UTF-8'))
+        currentSend = f'ISET1:{Current_list[i]}\n'
+        print(currentSend)
         #ser2.write(bytes(currentSend, 'UTF-8'))
-        ser2.write(b'OUT1')
-        time.sleep(2)
-        print(On_time_duration_list[i])
+        time.sleep(5) #wait for movement to finished before turing ON
+        #ser2.write(b'OUT1')
+        onTime = On_time_duration_list[i]
+        onTimeInt = int(onTime)
+        time.sleep(onTimeInt)
+        print("ON-TIME",i,onTimeInt)
         
         #CAPTURE
         Capture = f'{Capture_Selection[i]}\n'
         print(Capture)
-        ser1.write(bytes(Capture, 'UTF-8'))
+        status.config(text = "capturing...")
+        mainWindow.update()
+        laSer.write(bytes(Capture, 'UTF-8'))
         time.sleep(5)
-        ser1.flushInput()
-        ser1.write(b'getxyi01\n')
+        laSer.flushInput()
+        laSer.write(b'getxyi01\n')
         time.sleep(1)
         la_buffer_read()
         time.sleep(2)
-        ser2.write(b'OUT0')
+        #ser2.write(b'OUT0') #turn off power supply 
         time.sleep(2)
     plots()
+    mainWindow.config(cursor="")
+    status.config(text = "DONE!")
+    robotSer.write(b'G28 X Y\n')
+
+
+
 
 
 """ # start button
