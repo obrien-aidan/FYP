@@ -1,7 +1,7 @@
 """
 REFERENCE 1 = https://github.com/ajinkyapadwad/OpenCV-with-Tkinter/blob/master/video.py
 """
-#-----------INPUT-----------
+#-----------IMPORTS-----------
 import cv2
 from cv2 import cv2
 import tkinter as tk
@@ -21,14 +21,12 @@ from matplotlib.figure import Figure
 import serial.tools.list_ports
 from PIL import Image
 import PIL
-
-
-
-
-#----------- / INPUT-----------
+import sqlite3
+import time
+import datetime
+#----------- / IMPORTS-----------
 
 #-----------PORT SETUP-----------
-
 robotSer = serial.Serial("COM3", 250000)
 time.sleep(5)
 robotSer.write(b'G28 X Y\n')
@@ -40,13 +38,27 @@ laSer = serial.Serial("COM6", 57600)
 # starting camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
-
-
-
-
-
-
 #----------- / PORT SETUP-----------
+
+#-----------DB SETUP-----------
+#https://pythonprogramming.net/sqlite-part-2-dynamically-inserting-database-timestamps/
+conn = sqlite3.connect('FYP.db')
+conn.execute("PRAGMA foreign_keys = ON")
+c = conn.cursor()
+c.execute("PRAGMA foreign_keys = ON")
+c.execute("CREATE TABLE IF NOT EXISTS project(project_id INTEGER PRIMARY KEY AUTOINCREMENT, datestamp TEXT, numMeasurements INTEGER)")
+unix = int(time.time())
+datestamp = str(datetime.datetime.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S'))
+numMeasurements = int(0)
+c.execute("INSERT INTO project(datestamp, numMeasurements ) VALUES (?, ?)",
+        (datestamp, numMeasurements))
+print(unix, datestamp, numMeasurements)
+projectId=c.lastrowid
+print(projectId)
+conn.commit()
+#----------- / DB SETUP-----------
+
+
 
 
 #-----------WINDOW/FRAME SETUP-----------
@@ -119,7 +131,7 @@ Entry3_list = []  # list that contain all the Voltage entries
 Entry4_list = []  # list that contain all the Current entries
 Entry5_list = []  # list that contain all the On Time duration entries
 def dynamic_entry(index):
-    a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
+    a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6, state='readonly'))
     a_list[index].grid(row=index + 1, column=0,)
     Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
     Entry1_list[index].grid(row=index + 1, column=1)
@@ -203,7 +215,6 @@ homeButt.pack(side=LEFT, padx=15, pady=10)
 
 
 
-
 #----------- / WINDOW/FRAME SETUP-----------
 
 #-----------FUNCTION SETUP-----------
@@ -274,7 +285,7 @@ def la_buffer_read():
         print(xchromArray)
         print(ychromArray)
         print(intensityArray)
-        response4 = index,":", 'X Chromaticity: ',xchromf,' Y Chromaticity: ',ychromf,' Intensity: ',intensityint
+        response4 = len(intensityArray),":", 'X Chromaticity: ',xchromf,' Y Chromaticity: ',ychromf,' Intensity: ',intensityint
         status.config(text = response4)
         mainWindow.update()
         list_box.insert(len(intensityArray), response4 )
@@ -302,6 +313,8 @@ Capture_Selection=[]
 Voltage_list = []
 Current_list = []
 On_time_duration_list = []
+index = len(pos_listX)
+
 
 # function to get the x and y axis of image
 def getorigin(eventorigin):
@@ -321,7 +334,9 @@ def getorigin(eventorigin):
     pos_listY.append((list_valueY))
     Entry1_list[index].insert(0, pos_listX[index])
     Entry2_list[index].insert(0, pos_listY[index])
-    a_list[index].insert(0, [index])
+    a_list[index].configure(state='normal')
+    a_list[index].insert(0, index)
+    a_list[index].configure(state='readonly')
 
     dynamic_entry(index + 1)  # inserting new row and col in frame2
     frame2.bind("<Configure>", reset_scrollregion)  # bind reset scrollbar function
@@ -374,7 +389,7 @@ def itterateCallBack():
         time.sleep(5) #wait for movement to finished before turing ON
         #ser2.write(b'OUT1')
         onTime = On_time_duration_list[i]
-        onTimeInt = int(onTime)
+        onTimeInt = float(onTime)
         time.sleep(onTimeInt)
         print("ON-TIME",i,onTimeInt)
         
@@ -392,10 +407,48 @@ def itterateCallBack():
         time.sleep(2)
         #ser2.write(b'OUT0') #turn off power supply 
         time.sleep(2)
+
+        #-----------MEASUREMENT DB TABLE-----------
+        xcoordinate = int(xprint3[i])
+        ycoordinate = int(yprint3[i])
+        current = Current_list[i]
+        voltage = Voltage_list[i]
+        warmUpTime = onTimeInt
+        outputIntensity = intensityArray[i]
+
+        conn = sqlite3.connect('FYP.db')
+        conn.execute("PRAGMA foreign_keys = ON")
+        c = conn.cursor()
+        c.execute("PRAGMA foreign_keys = ON")
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS measurements(measurement_id INTEGER PRIMARY KEY AUTOINCREMENT, datestamp1 TEXT, xcoordinate INTEGER, ycoordinate INTEGER, voltage TEXT, current TEXT, warmUpTime REAL, outputIntensity INTEGER, foreign_key INTEGER, FOREIGN KEY(foreign_key) REFERENCES project(project_id))")
+        unix1 = int(time.time())
+        datestamp1 = str(datetime.datetime.fromtimestamp(unix1).strftime('%Y-%m-%d %H:%M:%S'))
+        c.execute("INSERT INTO measurements(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime, outputIntensity, foreign_key) VALUES (?,?,?,?,?,?,?,?)",(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime,outputIntensity,projectId))
+        conn.commit()
+
+
+
     plots()
     mainWindow.config(cursor="")
     status.config(text = "DONE!")
     robotSer.write(b'G28 X Y\n')
+
+    conn = sqlite3.connect('FYP.db')
+    c = conn.cursor()
+    index = int(len(pos_listX))
+    print(index)
+    c.execute('''UPDATE project SET numMeasurements = ? WHERE datestamp = ?''',(index,datestamp))
+    conn.commit()
+
+""" c.execute('SELECT * FROM project')
+data = c.fetchall()
+[print(row) for row in data]
+
+
+c.execute('UPDATE project SET numMeasurements = 10 WHERE numMeasurements = 0')
+conn.commit() """
+
 
 
 
