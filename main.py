@@ -14,7 +14,7 @@ import time
 import serial
 import time
 import numpy as np
-from tkinter import ttk
+from tkinter import ttk,messagebox
 #from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -27,13 +27,13 @@ import datetime
 #----------- / IMPORTS-----------
 
 #-----------PORT SETUP-----------
-robotSer = serial.Serial("COM3", 250000)
+robotSer = serial.Serial("COM7", 250000)
 time.sleep(5)
 robotSer.write(b'G28 X Y\n')
 time.sleep(1)
 robotSer.write(b'G90\n')
 time.sleep(1)
-laSer = serial.Serial("COM6", 57600)
+laSer = serial.Serial("COM9", 57600)
 #ser2 = serial.Serial("COM5", 9600)
 # starting camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -348,85 +348,114 @@ def getorigin(eventorigin):
 # binding mouseclick event image
 lmain.bind("<Button 1>", getorigin)
 
+def check(typee,data):
+    checking = []
+    for i in data:
+        try:
+            typee(i)
+            checking.append(True)
+        except:
+            checking.append(False)
+    if False in checking:
+        return False
+    else:
+        return True
+
 # button itterate
 def itterateCallBack():
+    checks = []
+    global index
     mainWindow.config(cursor="wait")
     mainWindow.update()
-    for i in range(len(pos_listY)):
-        Capture_Selection.append(combobox_list[i].get())
-        Voltage_list.append(Entry3_list[i].get())
-        Current_list.append(Entry4_list[i].get())
-        On_time_duration_list.append(Entry5_list[i].get())
+    #check fields are filled
+    for i in range(len(Entry1_list)-1):
+        checks.append(Entry1_list[i].get())
+        checks.append(Entry2_list[i].get())
+        checks.append(Entry3_list[i].get())
+        checks.append(Entry4_list[i].get())
+        checks.append(Entry5_list[i].get())
+        checks.append(combobox_list[i].get())
+    if '' in checks:
+        messagebox.showwarning('Empty Fields', 'Please fill all input fields.')
+    
+    else:
+        if check(int,checks[0::6])==True and check(int,checks[1::6])==True and check(float,checks[2::6])==True and check(float,checks[3::6])==True and check(float,checks[4::6])==True:
+            for i in range(len(pos_listY)):
+                Capture_Selection.append(combobox_list[i].get())
+                Voltage_list.append(Entry3_list[i].get())
+                Current_list.append(Entry4_list[i].get())
+                On_time_duration_list.append(Entry5_list[i].get())
 
-    print(Capture_Selection)
-    xprint1 = 0.5 * np.array(pos_listX)
-    xprint2 = np.round(xprint1)
-    xprint3 = [round(x) for x in xprint2]
-    yprint1 = -1 * np.array(pos_listY)
-    yprint1half = yprint1 + 385
-    yprint2 = np.round(yprint1half)
-    yprint3 = [round(y) for y in yprint2]
-    for i, val in enumerate(yprint3):
-        #G-CODE
-        print(i, ",", xprint3[i], yprint3[i])
-        xval = 'G0 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
-        print(i)
-        val = f'{xval}\n'
-        import struct
-        print(val)
-        status.config(text = xval)
-        mainWindow.update()
-        robotSer.write(b'M400\n')
-        robotSer.write(bytes(val, 'UTF-8'))
+            print(Capture_Selection)
+            xprint1 = 0.5 * np.array(pos_listX)
+            xprint2 = np.round(xprint1)
+            xprint3 = [round(x) for x in xprint2]
+            yprint1 = -1 * np.array(pos_listY)
+            yprint1half = yprint1 + 385
+            yprint2 = np.round(yprint1half)
+            yprint3 = [round(y) for y in yprint2]
+            for i, val in enumerate(yprint3):
+                #G-CODE
+                print(i, ",", xprint3[i], yprint3[i])
+                xval = 'G0 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
+                print(i)
+                val = f'{xval}\n'
+                import struct
+                print(val)
+                status.config(text = xval)
+                mainWindow.update()
+                robotSer.write(b'M400\n')
+                robotSer.write(bytes(val, 'UTF-8'))
 
-        #POWER
-        voltageSend = f'VSET1:{Voltage_list[i]}\n'
-        print("VOLTAGE",voltageSend)
-        #ser2.write(bytes(voltageSend, 'UTF-8'))
-        currentSend = f'ISET1:{Current_list[i]}\n'
-        print(currentSend)
-        #ser2.write(bytes(currentSend, 'UTF-8'))
-        time.sleep(5) #wait for movement to finished before turing ON
-        #ser2.write(b'OUT1')
-        onTime = On_time_duration_list[i]
-        onTimeInt = float(onTime)
-        time.sleep(onTimeInt)
-        print("ON-TIME",i,onTimeInt)
-        
-        #CAPTURE
-        Capture = f'{Capture_Selection[i]}\n'
-        print(Capture)
-        status.config(text = "capturing...")
-        mainWindow.update()
-        laSer.write(bytes(Capture, 'UTF-8'))
-        time.sleep(5)
-        laSer.flushInput()
-        laSer.write(b'getxyi01\n')
-        time.sleep(1)
-        la_buffer_read()
-        time.sleep(2)
-        #ser2.write(b'OUT0') #turn off power supply 
-        time.sleep(2)
+                #POWER
+                voltageSend = f'VSET1:{Voltage_list[i]}\n'
+                print("VOLTAGE",voltageSend)
+                #ser2.write(bytes(voltageSend, 'UTF-8'))
+                currentSend = f'ISET1:{Current_list[i]}\n'
+                print(currentSend)
+                #ser2.write(bytes(currentSend, 'UTF-8'))
+                time.sleep(5) #wait for movement to finished before turing ON
+                #ser2.write(b'OUT1')
+                onTime = On_time_duration_list[i]
+                onTimeInt = float(onTime)
+                time.sleep(onTimeInt)
+                print("ON-TIME",i,onTimeInt)
+                
+                #CAPTURE
+                Capture = f'{Capture_Selection[i]}\n'
+                print(Capture)
+                status.config(text = "capturing...")
+                mainWindow.update()
+                laSer.write(bytes(Capture, 'UTF-8'))
+                time.sleep(5)
+                laSer.flushInput()
+                laSer.write(b'getxyi01\n')
+                time.sleep(1)
+                la_buffer_read()
+                time.sleep(2)
+                #ser2.write(b'OUT0') #turn off power supply 
+                time.sleep(2)
 
-        #-----------MEASUREMENT DB TABLE-----------
-        xcoordinate = int(xprint3[i])
-        ycoordinate = int(yprint3[i])
-        current = Current_list[i]
-        voltage = Voltage_list[i]
-        warmUpTime = onTimeInt
-        outputIntensity = intensityArray[i]
+                #-----------MEASUREMENT DB TABLE-----------
+                xcoordinate = int(xprint3[i])
+                ycoordinate = int(yprint3[i])
+                current = Current_list[i]
+                voltage = Voltage_list[i]
+                warmUpTime = onTimeInt
+                outputIntensity = intensityArray[i]
 
-        conn = sqlite3.connect('FYP.db')
-        conn.execute("PRAGMA foreign_keys = ON")
-        c = conn.cursor()
-        c.execute("PRAGMA foreign_keys = ON")
-        c = conn.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS measurements(measurement_id INTEGER PRIMARY KEY AUTOINCREMENT, datestamp1 TEXT, xcoordinate INTEGER, ycoordinate INTEGER, voltage TEXT, current TEXT, warmUpTime REAL, outputIntensity INTEGER, foreign_key INTEGER, FOREIGN KEY(foreign_key) REFERENCES project(project_id))")
-        unix1 = int(time.time())
-        datestamp1 = str(datetime.datetime.fromtimestamp(unix1).strftime('%Y-%m-%d %H:%M:%S'))
-        c.execute("INSERT INTO measurements(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime, outputIntensity, foreign_key) VALUES (?,?,?,?,?,?,?,?)",(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime,outputIntensity,projectId))
-        conn.commit()
-
+                conn = sqlite3.connect('FYP.db')
+                conn.execute("PRAGMA foreign_keys = ON")
+                c = conn.cursor()
+                c.execute("PRAGMA foreign_keys = ON")
+                c = conn.cursor()
+                c.execute("CREATE TABLE IF NOT EXISTS measurements(measurement_id INTEGER PRIMARY KEY AUTOINCREMENT, datestamp1 TEXT, xcoordinate INTEGER, ycoordinate INTEGER, voltage TEXT, current TEXT, warmUpTime REAL, outputIntensity INTEGER, foreign_key INTEGER, FOREIGN KEY(foreign_key) REFERENCES project(project_id))")
+                unix1 = int(time.time())
+                datestamp1 = str(datetime.datetime.fromtimestamp(unix1).strftime('%Y-%m-%d %H:%M:%S'))
+                c.execute("INSERT INTO measurements(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime, outputIntensity, foreign_key) VALUES (?,?,?,?,?,?,?,?)",(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime,outputIntensity,projectId))
+                conn.commit()
+        else:
+            messagebox.showwarning('Wrong Datatype', 'Please use the correct input datatype')
 
 
     plots()
