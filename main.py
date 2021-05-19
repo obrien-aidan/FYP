@@ -31,10 +31,11 @@ import datetime
 #-----------PORT SETUP-----------
 robotSer = serial.Serial("COM7", 250000)
 time.sleep(5)
-robotSer.write(b'G28 X Y\n')
-time.sleep(1)
+robotSer.write(b'G28 X Y Z\n')
+time.sleep(5)
 robotSer.write(b'G90\n')
-time.sleep(1)
+time.sleep(2)
+robotSer.write(b'G0 Z15\n')
 laSer = serial.Serial("COM9", 57600)
 #ser2 = serial.Serial("COM5", 9600)
 # starting camera
@@ -146,17 +147,11 @@ run_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\play.png')
 small = run_btn.subsample(35,35)
 runButt = Button(toolbar, command=lambda :itterateCallBack(), image=small, highlightthickness = 0, bd = 0, state="disabled")
 runButt.pack(side=LEFT, padx=15, pady=10)
-##stop
-stop_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\stop.png')
-small1 = stop_btn.subsample(35,35)
-stopButt = Button(toolbar, command=lambda :stopButton(), image=small1, highlightthickness = 0, bd = 0)
-stopButt.pack(side=LEFT, padx=15, pady=10)
-##home
-
-
-""" 
-labelframe = LabelFrame(mainWindow, text="This is a LabelFrame")
-labelframe.pack(fill="both", expand="yes") """
+##save
+save_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\save.png')
+small1 = save_btn.subsample(35,35)
+saveButt = Button(toolbar, command=lambda :saveButton(), image=small1, highlightthickness = 0, bd = 0, state="disabled")
+saveButt.pack(side=LEFT, padx=15, pady=10)
 
 
 # creating Frame for video
@@ -231,7 +226,7 @@ def reset_scrollregion(event):
 
 
 #  creating Frame3 (right)
-frame3 = tk.Frame(mainFrame, width=650, height=400)
+frame3 = tk.Frame(mainFrame, width=750, height=400)
 frame3.pack(side=RIGHT, anchor=NE, padx=15, pady=5)
 frame3_1=tk.Frame(frame3)
 frame3_1.pack(fill='x')
@@ -245,7 +240,7 @@ list_box.pack(fill='x', expand=1)
 global canvas_xy
 def polt_canvas():
     global canvas_xy
-    canvas_xy = Canvas(frame3_2, bg='grey', width=500, height=300)
+    canvas_xy = Canvas(frame3_2, bg='grey', width=700, height=300)
     canvas_xy.pack(side=TOP, fill="x")  # placing it on window
 polt_canvas()
 
@@ -346,6 +341,15 @@ def la_buffer_read():
     print('+++++++++++++++++++++++++++')
     time.sleep(1)
 
+def saveButton():
+    #https://www.codegrepper.com/code-examples/python/save+file+python+tkinter
+    filename = filedialog.asksaveasfilename(initialdir='/', title='Save File', filetypes=[("CSV files", "*.csv")])
+    textContent = "I'm the text in the file"
+    name2 = filename + ".csv"
+    myfile = open(name2, "w+")
+    toWrite = ', '.join(csvArray)
+    myfile.write(toWrite)
+    print("File saved as ", filename)
 
 
 
@@ -453,17 +457,57 @@ def itterateCallBack():
                 Voltage_list.append(Entry3_list[i].get())
                 Current_list.append(Entry4_list[i].get())
                 On_time_duration_list.append(Entry5_list[i].get())
-
             print(Capture_Selection)
+
             xprint1 = 0.5 * np.array(pos_listX)
+            print("xprint1",xprint1)
             xprint2 = np.round(xprint1)
+            print("xprint2",xprint2)
             xprint3 = [round(x) for x in xprint2]
+            print(xprint3)
             yprint1 = -1 * np.array(pos_listY)
-            yprint1half = yprint1 + 385
-            yprint2 = np.round(yprint1half)
+            yprint1half = yprint1 + 500
+            yprintdivide = 0.5 * yprint1half 
+            yprint2 = np.round(yprintdivide)
             yprint3 = [round(y) for y in yprint2]
+            print(yprint3)
             for i, val in enumerate(yprint3):
                 #G-CODE
+                if xprint3[i] <=49:
+                    xprint3[i] = xprint3[i]*1.10
+                elif 50 < xprint3[1] < 75:
+                    xprint3[i] = xprint3[i]*1.05
+                elif 76 < xprint3[1] < 90:
+                    xprint3[i] = xprint3[i]*1.025
+                elif 91 < xprint3[1] < 110:
+                    xprint3[i] = xprint3[i]*1.01
+                elif 111 < xprint3[1] < 125:
+                    xprint3[i] = xprint3[i]*0.975
+                elif 126 < xprint3[1] < 150:
+                    xprint3[i] = xprint3[i]*0.95
+                else:
+                    xprint3[i] = xprint3[i]
+
+                if yprint3[i] <=49:
+                    yprint3[i] = yprint3[i]*0.8
+                elif 50 < xprint3[1] < 75:
+                    yprint3[i] = yprint3[i]*0.85
+                elif 76 < xprint3[1] < 90:
+                    yprint3[i] = yprint3[i]*0.915
+                elif 91 < xprint3[1] < 100:
+                    yprint3[i] = yprint3[i]*1.05
+                elif 101 < xprint3[1] < 110:
+                    yprint3[i] = yprint3[i]*1.025                    
+                elif 111 < xprint3[1] < 125:
+                    yprint3[i] = yprint3[i]*1.05
+                elif yprint3[i] >= 125:
+                    yprint3[i] = yprint3[i]*1.07
+                else:
+                    yprint3[i] = yprint3[i]
+                
+                yprint3 = [round(y) for y in yprint3]
+                xprint3 = [round(y) for y in xprint3]
+
                 print(i, ",", xprint3[i], yprint3[i])
                 xval = 'G0 X' + str(xprint3[i]) + ' Y' + str(yprint3[i])
                 print(i)
@@ -541,6 +585,7 @@ def itterateCallBack():
                 if i == len(pos_listX)-1:
                     new.destroy()
                     runButt.config(state="disabled")
+                    saveButt.config(state="normal")
                     unbind()
 
         else:
@@ -558,14 +603,14 @@ def itterateCallBack():
     c.execute('''UPDATE project SET numMeasurements = ? WHERE datestamp = ?''',(index,datestamp))
     conn.commit()
 
-    #https://www.codegrepper.com/code-examples/python/save+file+python+tkinter
+"""     #https://www.codegrepper.com/code-examples/python/save+file+python+tkinter
     filename = filedialog.asksaveasfilename(initialdir='/', title='Save File', filetypes=[("CSV files", "*.csv")])
     textContent = "I'm the text in the file"
     name2 = filename + ".csv"
     myfile = open(name2, "w+")
     toWrite = ', '.join(csvArray)
     myfile.write(toWrite)
-    print("File saved as ", filename)
+    print("File saved as ", filename) """
 
 """ c.execute('SELECT * FROM project')
 data = c.fetchall()
