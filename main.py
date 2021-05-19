@@ -5,6 +5,7 @@ REFERENCE 1 = https://github.com/ajinkyapadwad/OpenCV-with-Tkinter/blob/master/v
 import cv2
 from cv2 import cv2
 import tkinter as tk
+from tkinter import filedialog
 from tkinter import *
 from PIL import Image as Img
 from PIL import ImageTk
@@ -15,6 +16,7 @@ import serial
 import time
 import numpy as np
 from tkinter import ttk,messagebox
+from tkinter.ttk import Progressbar
 #from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -39,6 +41,50 @@ laSer = serial.Serial("COM9", 57600)
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
 #----------- / PORT SETUP-----------
+#-----------SPLASH------------------
+splash=Tk()
+a='white'
+splash.iconbitmap(r'C:\Users\Aidan\Documents\1.FYP\logo_R8v_icon.ico')
+splash.title('Welcome')
+splash.config(bg=a)
+splash.resizable(False,False)
+window_height = 400
+window_width = 450
+screen_width = splash.winfo_screenwidth()
+screen_height = splash.winfo_screenheight()
+x_cordinate = int((screen_width/2) - (window_width/2))
+y_cordinate = int((screen_height/2) - (window_height/2))
+splash.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
+
+logos=Image.open(r'C:\Users\Aidan\Documents\1.FYP\witlogo.jpg')
+resized_l = logos.resize((140,150),Image.ANTIALIAS)
+logo1 = ImageTk.PhotoImage(resized_l)
+
+logo = Label(splash, image=logo1, bd=0)
+logo.grid(row=0,column=0,padx=(70,10),pady=(40,20))
+
+
+logos2=Image.open(r'C:\Users\Aidan\Documents\1.FYP\feasalogo.jpg')
+resized_l2 = logos2.resize((140,150),Image.ANTIALIAS)
+logo2 = ImageTk.PhotoImage(resized_l2)
+
+logo3 = Label(splash, image=logo2, bd=0)
+logo3.grid(row=0,column=1,padx=(10,70),pady=(40,20))
+
+
+l1=Label(splash,text='Vision-Based Robotic System',fg="#00adb5",bg=a,font=('HELVETICA',18,'bold'))
+l1.grid(row=1,column=0,padx=10,pady=(20,10),columnspan=2)
+
+l2=Label(splash,text='for light metrology',fg='#393e46',bg=a,font=('HELVETICA',14))
+l2.grid(row=2,column=0,padx=10,pady=(10,30),columnspan=2)
+
+l2=Label(splash,text="AidanO'Brien 2021",fg='#393e46',bg=a,font=('HELVETICA',10,'italic'))
+l2.grid(row=3,column=0,padx=10,pady=(10,30),columnspan=2)
+
+
+splash.after(6000, lambda: splash.destroy())
+
+splash.mainloop()
 
 #-----------DB SETUP-----------
 #https://pythonprogramming.net/sqlite-part-2-dynamically-inserting-database-timestamps/
@@ -98,12 +144,12 @@ toolbar.pack(side=TOP, fill=X)
 #https://dryicons.com/free-icons/play
 run_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\play.png')
 small = run_btn.subsample(35,35)
-runButt = Button(toolbar, command=lambda :itterateCallBack(), image=small, highlightthickness = 0, bd = 0)
+runButt = Button(toolbar, command=lambda :itterateCallBack(), image=small, highlightthickness = 0, bd = 0, state="disabled")
 runButt.pack(side=LEFT, padx=15, pady=10)
 ##stop
 stop_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\stop.png')
 small1 = stop_btn.subsample(35,35)
-stopButt = Button(toolbar, command=mainWindow.destroy, image=small1, highlightthickness = 0, bd = 0)
+stopButt = Button(toolbar, command=lambda :stopButton(), image=small1, highlightthickness = 0, bd = 0)
 stopButt.pack(side=LEFT, padx=15, pady=10)
 ##home
 
@@ -131,7 +177,7 @@ Entry3_list = []  # list that contain all the Voltage entries
 Entry4_list = []  # list that contain all the Current entries
 Entry5_list = []  # list that contain all the On Time duration entries
 def dynamic_entry(index):
-    a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6, state='readonly'))
+    a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6, state='readonly',justify='center'))
     a_list[index].grid(row=index + 1, column=0,)
     Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
     Entry1_list[index].grid(row=index + 1, column=1)
@@ -235,6 +281,7 @@ def show_frame():
 xchromArray = []
 ychromArray = []
 intensityArray = []
+csvArray = []
 
 def plots():
     f = Figure(figsize=(7, 3.5), dpi=80)  # Creating figure
@@ -285,7 +332,12 @@ def la_buffer_read():
         print(xchromArray)
         print(ychromArray)
         print(intensityArray)
-        response4 = len(intensityArray),":", 'X Chromaticity: ',xchromf,' Y Chromaticity: ',ychromf,' Intensity: ',intensityint
+        response5 = len(intensityArray)-1,":", "X Chromaticity: ",xchromf,' | ',' Y Chromaticity: ',ychromf,' | ',' Intensity: ',intensityint
+        response6 = str(response5)
+        response7 = response6.replace('{','').replace('}','').replace('\'','').replace(',','').replace('(','').replace(')','')
+        response4 = response7
+        response8 = str(response4)
+        csvArray.append((response8))
         status.config(text = response4)
         mainWindow.update()
         list_box.insert(len(intensityArray), response4 )
@@ -293,13 +345,6 @@ def la_buffer_read():
         #plt.show()
     print('+++++++++++++++++++++++++++')
     time.sleep(1)
-
-""" # start button
-startButton = Button(mainWindow, text="START", font=fontButtons, bg='#32a83e',fg='white', width=20, height=2, command=lambda :itterateCallBack())
-startButton.pack(side=LEFT, anchor=NW)
-# stop button
-stopButton = Button(mainWindow, text="STOP", font=fontButtons, bg='red',fg='white', width=20, height=2)
-stopButton.pack(side=LEFT, anchor=NW) """
 
 
 
@@ -342,11 +387,18 @@ def getorigin(eventorigin):
     frame2.bind("<Configure>", reset_scrollregion)  # bind reset scrollbar function
     l1 = Label(mainWindow, text='(' + f'{x0}' + ',' + f'{y0}' + ')', font=('Times New Roman', 7), bg='lightgray')
     l1.place(x=x0, y=y0)
-
-
-
+    runButt.config(state="active")
 # binding mouseclick event image
-lmain.bind("<Button 1>", getorigin)
+b = lmain.bind("<Button 1>", getorigin)
+def bind():
+    b
+bind()
+#https://stackoverflow.com/questions/37902503/unable-to-unbind-a-function-using-tkinter
+def unbind():
+    lmain.unbind("<Button 1>", b)
+    
+
+
 
 def check(typee,data):
     checking = []
@@ -365,7 +417,7 @@ def check(typee,data):
 def itterateCallBack():
     checks = []
     global index
-    mainWindow.config(cursor="wait")
+    #mainWindow.config(cursor="wait")
     mainWindow.update()
     #check fields are filled
     for i in range(len(Entry1_list)-1):
@@ -380,6 +432,22 @@ def itterateCallBack():
     
     else:
         if check(int,checks[0::6])==True and check(int,checks[1::6])==True and check(float,checks[2::6])==True and check(float,checks[3::6])==True and check(float,checks[4::6])==True:
+            new = Toplevel()
+            x = mainWindow.winfo_x()
+            y = mainWindow.winfo_y()
+            new.geometry("+%d+%d" % (x + 300, y + 300))
+            new.resizable(0,0)
+            s = ttk.Style()
+            s.theme_use('clam')
+            s.configure("red.Horizontal.TProgressbar", troughcolor ='#393e46', background="#00adb5", thickness=500)
+            progress=Progressbar(new,style="red.Horizontal.TProgressbar",orient=HORIZONTAL,length=500,mode='determinate',)
+            progress.grid(row=0,column=0,padx=30,pady=20)
+            import time
+            
+            progress['value']=0
+            new.update_idletasks()
+            time.sleep(1)                       
+            
             for i in range(len(pos_listY)):
                 Capture_Selection.append(combobox_list[i].get())
                 Voltage_list.append(Entry3_list[i].get())
@@ -407,6 +475,10 @@ def itterateCallBack():
                 robotSer.write(b'M400\n')
                 robotSer.write(bytes(val, 'UTF-8'))
 
+                progress['value']=25
+                new.update_idletasks()
+                time.sleep(0.5)
+                
                 #POWER
                 voltageSend = f'VSET1:{Voltage_list[i]}\n'
                 print("VOLTAGE",voltageSend)
@@ -420,6 +492,10 @@ def itterateCallBack():
                 onTimeInt = float(onTime)
                 time.sleep(onTimeInt)
                 print("ON-TIME",i,onTimeInt)
+
+                progress['value']=50
+                new.update_idletasks()
+                time.sleep(0.5)
                 
                 #CAPTURE
                 Capture = f'{Capture_Selection[i]}\n'
@@ -435,6 +511,9 @@ def itterateCallBack():
                 time.sleep(2)
                 #ser2.write(b'OUT0') #turn off power supply 
                 time.sleep(2)
+                progress['value']=75
+                new.update_idletasks()
+                time.sleep(0.5)
 
                 #-----------MEASUREMENT DB TABLE-----------
                 xcoordinate = int(xprint3[i])
@@ -454,9 +533,18 @@ def itterateCallBack():
                 datestamp1 = str(datetime.datetime.fromtimestamp(unix1).strftime('%Y-%m-%d %H:%M:%S'))
                 c.execute("INSERT INTO measurements(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime, outputIntensity, foreign_key) VALUES (?,?,?,?,?,?,?,?)",(datestamp1,xcoordinate, ycoordinate, voltage, current, warmUpTime,outputIntensity,projectId))
                 conn.commit()
+
+                progress['value']=100
+                new.update_idletasks()
+                time.sleep(0.5)
+
+                if i == len(pos_listX)-1:
+                    new.destroy()
+                    runButt.config(state="disabled")
+                    unbind()
+
         else:
             messagebox.showwarning('Wrong Datatype', 'Please use the correct input datatype')
-
 
     plots()
     mainWindow.config(cursor="")
@@ -469,6 +557,15 @@ def itterateCallBack():
     print(index)
     c.execute('''UPDATE project SET numMeasurements = ? WHERE datestamp = ?''',(index,datestamp))
     conn.commit()
+
+    #https://www.codegrepper.com/code-examples/python/save+file+python+tkinter
+    filename = filedialog.asksaveasfilename(initialdir='/', title='Save File', filetypes=[("CSV files", "*.csv")])
+    textContent = "I'm the text in the file"
+    name2 = filename + ".csv"
+    myfile = open(name2, "w+")
+    toWrite = ', '.join(csvArray)
+    myfile.write(toWrite)
+    print("File saved as ", filename)
 
 """ c.execute('SELECT * FROM project')
 data = c.fetchall()
