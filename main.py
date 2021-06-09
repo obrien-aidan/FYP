@@ -1,6 +1,3 @@
-"""
-REFERENCE 1 = https://github.com/ajinkyapadwad/OpenCV-with-Tkinter/blob/master/video.py
-"""
 #-----------IMPORTS-----------
 import cv2
 from cv2 import cv2
@@ -17,7 +14,6 @@ import time
 import numpy as np
 from tkinter import ttk,messagebox
 from tkinter.ttk import Progressbar
-#from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
@@ -28,59 +24,101 @@ import sqlite3
 import time
 import datetime
 from pathlib import Path
-
 #----------- / IMPORTS-----------
+
+
 #-----------PORT SETUP-----------
-robotSer = serial.Serial("COM10", 250000)
+#set robot serial port
+robotSer = serial.Serial("COM13", 250000)
+#delay for 3D printer initilization 
 time.sleep(5)
+#home axis
 robotSer.write(b'G28 X Y Z\n')
+#wait for axis to home
 time.sleep(5)
+#set movement to absolute
 robotSer.write(b'G90\n')
+#wait to ensure absolute setting is transmitted
 time.sleep(2)
+#set the z axis to be 15 from top
 robotSer.write(b'G0 Z15\n')
+#set the led analyser serial port
 laSer = serial.Serial("COM9", 57600)
+#set the power supply serial port
 ser2 = serial.Serial("COM5", 9600)
 # starting camera
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) #camera port 0
+#setting the exposure value
 cap.set(cv2.CAP_PROP_EXPOSURE, -5.5)
 #----------- / PORT SETUP-----------
+
+
 #-----------SPLASH------------------
 def splash():
+    #new window
     splash=Tk()
+    #color variable
     a='white'
+    #window icon location
     splash.iconbitmap(Path(__file__).parent / "images/logo_R8v_icon.ico")
-    #splash.iconbitmap(r'C:\Users\Aidan\Documents\1.FYP\logo_R8v_icon.ico')
+    #setting the title of the splash window
     splash.title('Welcome')
+    #setting the background
     splash.config(bg=a)
+    #set to not be resizable
     splash.resizable(False,False)
+    #set the window height
     window_height = 400
+    #set the window width
     window_width = 450
+    #getting screen information to centre the splash screen
     screen_width = splash.winfo_screenwidth()
     screen_height = splash.winfo_screenheight()
     x_cordinate = int((screen_width/2) - (window_width/2))
     y_cordinate = int((screen_height/2) - (window_height/2))
+    #centering the splash screen
     splash.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
+    #first logo path
     logos=Image.open(Path(__file__).parent / "images/witlogo.jpg")
+    #resizing the logo
     resized_l = logos.resize((140,150),Image.ANTIALIAS)
+    #format as image
     logo1 = ImageTk.PhotoImage(resized_l)
+    #setting as label to place in grid
     logo = Label(splash, image=logo1, bd=0)
+    #placing in the grid
     logo.grid(row=0,column=0,padx=(70,10),pady=(40,20))
+    #second logo path
     logos2=Image.open(Path(__file__).parent / "images/feasalogo.jpg")
+    #resizing the logo
     resized_l2 = logos2.resize((140,150),Image.ANTIALIAS)
+    #format as image
     logo2 = ImageTk.PhotoImage(resized_l2)
+    #setting as label to place in grid
     logo3 = Label(splash, image=logo2, bd=0)
+    #placing in the grid
     logo3.grid(row=0,column=1,padx=(10,70),pady=(40,20))
+    #text1
     l1=Label(splash,text='Vision-Based Robotic System',fg="#00adb5",bg=a,font=('HELVETICA',18,'bold'))
+    #placing text on grid
     l1.grid(row=1,column=0,padx=10,pady=(20,10),columnspan=2)
+    #text2
     l2=Label(splash,text='for light metrology',fg='#393e46',bg=a,font=('HELVETICA',14))
+    #placing text on grid
     l2.grid(row=2,column=0,padx=10,pady=(10,30),columnspan=2)
-    l2=Label(splash,text="AidanO'Brien 2021",fg='#393e46',bg=a,font=('HELVETICA',10,'italic'))
-    l2.grid(row=3,column=0,padx=10,pady=(10,30),columnspan=2)
+    #text3
+    l3=Label(splash,text="AidanO'Brien 2021",fg='#393e46',bg=a,font=('HELVETICA',10,'italic'))
+    #placing text on grid
+    l3.grid(row=3,column=0,padx=10,pady=(10,30),columnspan=2)
+    #display for 6 seconds
     splash.after(6000, lambda: splash.destroy())
     splash.mainloop()
+#call the splash screen function
 splash()
+#-----------/ SPLASH------------------
+
+
 #-----------DB SETUP-----------
-#https://pythonprogramming.net/sqlite-part-2-dynamically-inserting-database-timestamps/
 #connect
 conn = sqlite3.connect('FYP.db')
 #cursor absraction
@@ -103,36 +141,54 @@ projectId=c.lastrowid
 #commit to save changes
 conn.commit()
 #----------- / DB SETUP-----------
+
+
 #-----------WINDOW/FRAME SETUP-----------
+#####-------MAIN WINDOW-------#####
 # Window
-#https://colorhunt.co/palette/273305
+#color setup1
 white = "#ffffff"
+#color setup2
 lightBlue2 = "#393e46"
+#font setup
 font = "Helvetica"
+#font2 setup
 fontButtons = (font, 12)
+#main window setup
 mainWindow = tk.Tk()
-#mainWindow.iconbitmap(r'C:\Users\Aidan\Documents\1.FYP\logo_R8v_icon.ico')
+#setting the window logo
 mainWindow.iconbitmap(Path(__file__).parent / "images/logo_R8v_icon.ico")
+#setting the window title
 mainWindow.title(' AOB FYP | Vision-Based Robotic System')
+#configure background color
 mainWindow.configure(bg=lightBlue2)
+#matching the window size to the screen size
 w = mainWindow.winfo_screenwidth()
 h = mainWindow.winfo_screenheight() - 10
 mainWindow.geometry("%dx%d+0+0" % (w, h))
-
-# menus #https://www.youtube.com/watch?v=PSm-tq5M-Dc
+#about menu drop down
 def showAbout():
+        #open window
         about=Toplevel(mainWindow)
+        #set the window icon
         about.iconbitmap(Path(__file__).parent / "images/logo_R8v_icon.ico")
+        #set the window title
         about.title('About')
+        #set the window color
         about.config(bg="white")
+        #make non resizable
         about.resizable(False,False)
+        #set the window height
         window_height = 225
+        #set the window width
         window_width = 225
+        #center the window
         screen_width = about.winfo_screenwidth()
         screen_height = about.winfo_screenheight()
         x_cordinate = int((screen_width/2) - (window_width/2))
         y_cordinate = int((screen_height/2) - (window_height/2))
         about.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
+        #adding text and placing on grid
         l1=Label(about,text='Vision-Based Robotic System',fg="#00adb5",bg=white,font=('HELVETICA',10,'bold'))
         l1.grid(row=1,column=0,padx=0,pady=(10,5),columnspan = 2,sticky="ew")
         l2=Label(about,text='for light metrology',fg='#393e46',bg=white,font=('HELVETICA',10))
@@ -144,72 +200,106 @@ def showAbout():
         l5=Label(about,text='for more information',fg='#393e46',bg=white,font=('HELVETICA',8))
         l5.grid(row=6,column=0,padx=0,pady=(0,0),sticky="ew")
 
-
+#setting up menu bar
 menu = Menu(mainWindow)
+#config as menu
 mainWindow.config(menu=menu)
-
+#file drop downdown menu
 fileMenu = Menu(menu, tearoff=False, background='#aad8d3')
 menu.add_cascade(label='File',menu=fileMenu)
+#add seperator before exit
 fileMenu.add_separator()
+#option for closing the program
 fileMenu.add_command(label="Exit",command=mainWindow.destroy)
-
+#setting up help menu
 helpMenu = Menu(menu, tearoff=False, background='#aad8d3')
 menu.add_cascade(label='Help',menu=helpMenu)
+#add a seperator
 helpMenu.add_separator()
+#open the About window
 helpMenu.add_command(label="About",command=lambda: showAbout())
-
-#toolbar
+#creating the toolbar
 toolbar = Frame(mainWindow, background="#eeeeee")
+#places at top of window and fills horizontally
 toolbar.pack(side=TOP, fill=X)
-
-##run
-#https://dryicons.com/free-icons/play
-#run_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\play.png')
+#run button image import
 run_btn = PhotoImage(file=Path(__file__).parent / "images/play.png")
+#formating the image
 small = run_btn.subsample(35,35)
+#creating the run button - calls the itterateCallback() function
 runButt = Button(toolbar, command=lambda :itterateCallBack(), image=small, highlightthickness = 0, bd = 0, state="disabled")
+#packing the run button
 runButt.pack(side=LEFT, padx=15, pady=10)
-##save
-#save_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\save.png')
+#save button image import
 save_btn = PhotoImage(file=Path(__file__).parent / "images/save.png")
+#formating the image
 small1 = save_btn.subsample(35,35)
+#creating the save button - calls the saveButton() function
 saveButt = Button(toolbar, command=lambda :saveButton(), image=small1, highlightthickness = 0, bd = 0, state="disabled")
+#packing the save button
 saveButt.pack(side=LEFT, padx=15, pady=10)
-
-
-# creating Frame for video
+#####-------/ MAIN WINDOW-------#####
+#####-------VIDEO FRAME-------#####
+#creating Frame for video
 mainFrame = Frame(mainWindow, bg=lightBlue2)
+#packing video frame
 mainFrame.pack(side=TOP, anchor=CENTER, fill='x')
-lmain = tk.Label(mainFrame, cursor='crosshair')  # change the cursor into crosshair
+#cursor to crosshair 
+lmain = tk.Label(mainFrame, cursor='crosshair')
+#pack the label 
 lmain.pack(side=LEFT, anchor=CENTER, padx=5, pady=5)
+#####-------/VIDEO FRAME-------#####
 
-
-# creating 2nd frame
+#####-------INPUT FRAME-------#####
+#set index to global
 global index
-index = 0  # first index
-a_list = [] #index counter
-Entry1_list = []  # list that contain all the X entries
-Entry2_list = []  # list that contain all the Y entries
-combobox_list = []  # list that contain all the combo-box
-Entry3_list = []  # list that contain all the Voltage entries
-Entry4_list = []  # list that contain all the Current entries
-Entry5_list = []  # list that contain all the On Time duration entries
+#initilaze the index
+index = 0
+#number column  
+a_list = []
+#list that contain all the X entries
+Entry1_list = []
+#list that contain all the Y entries
+Entry2_list = []
+#list that contain all the combo-box/capture selection
+combobox_list = []  
+#list that contain all the Voltage entries
+Entry3_list = []  
+#list that contain all the Current entries
+Entry4_list = []
+#list that contain all the On Time duration entries
+Entry5_list = []
 def dynamic_entry(index):
+    #display the number as read only
     a_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6, state='readonly',justify='center'))
+    #add to grid
     a_list[index].grid(row=index + 1, column=0,)
+    #display the x coordinates
     Entry1_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
+    #add to grid
     Entry1_list[index].grid(row=index + 1, column=1)
+    #display the y coordinates
     Entry2_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=6))
+    #add to grid
     Entry2_list[index].grid(row=index + 1, column=2)
+    #display the capture selection drop down menu
     combobox_list.append(ttk.Combobox(frame2, width=15, values=(
         'CAPTURE', 'CAPTURE1', 'CAPTURE2', 'CAPTURE3', 'CAPTURE4', 'CAPTURE5'), state='readonly'))
+    #add to grid
     combobox_list[index].grid(row=index + 1, column=3)
+    #sets the drop box to the current capture selection value value
     combobox_list[index].current()
+    #display the current(a) value
     Entry3_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    #add to grid
     Entry3_list[index].grid(row=index + 1, column=4)
+    #display the voltage value
     Entry4_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    #add to grid
     Entry4_list[index].grid(row=index + 1, column=5)
+    #display the warm up time value
     Entry5_list.append(Entry(frame2, font=("Arial", 10, 'bold'), bd=1, width=10))
+    #add to grid
     Entry5_list[index].grid(row=index + 1, column=6)
 # creating new frame for canvas
 Main_Scrollbar_frame = LabelFrame(mainWindow, text="Input", width=400, height=200, pady=5, padx=5,
@@ -246,9 +336,9 @@ dynamic_entry(index)
 # function for update the scrollbar
 def reset_scrollregion(event):
     canvas.configure(scrollregion=canvas.bbox("all"))
+#####-------/INPUT FRAME-------#####
 
-
-#  creating Frame3 (right)
+#####-------OUTPUT FRAME-------#####
 frame3 = tk.Frame(mainFrame, width=750, height=400)
 frame3.pack(side=RIGHT, anchor=NE, padx=15, pady=5)
 frame3_1=tk.Frame(frame3)
@@ -266,45 +356,51 @@ def polt_canvas():
     canvas_xy = Canvas(frame3_2, bg='grey', width=700, height=300)
     canvas_xy.pack(side=TOP, fill="x")  # placing it on window
 polt_canvas()
+#####-------/OUTPUT FRAME-------#####
 
-# status bar 
-# https://www.youtube.com/watch?v=FqIKEW-S8W0
+#####-------STATUS BAR-------#####
 status = Label(mainWindow, text="status..",bd=1,relief=SUNKEN, anchor=W, background='#aad8d3')
 status.pack(side=BOTTOM, fill=X)
-##home
+#####-------/STATUS BAR-------#####
+
+#home button
 home_btn = PhotoImage(file=Path(__file__).parent / "images/home.png")
-#home_btn = PhotoImage(file=r'C:\Users\Aidan\Documents\1.FYP\home.png')
 small2 = home_btn.subsample(30,30)
 homeButt = Button(toolbar, command=lambda:[robotSer.write(b'G28 X Y\n'),status.config(text = "G28 Axis Homing...")], image=small2, highlightthickness = 0, bd = 0)
 homeButt.pack(side=LEFT, padx=15, pady=10)
-
-
-
 #----------- / WINDOW/FRAME SETUP-----------
 
+
 #-----------FUNCTION SETUP-----------
-# function to show image in frame
+#function to show video in frame
 def show_frame():
-    ret, frame = cap.read()  # reading cam
-    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)  # converting color into cv2.COLOR_BGR2RGBA
+    #reading cam
+    ret, frame = cap.read()
+    #converting color into cv2.COLOR_BGR2RGBA
+    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
     rotated1 = cv2.rotate(cv2image, cv2.ROTATE_90_CLOCKWISE)
-    img = Img.fromarray(rotated1).resize((400, 400))  # giving size to the video/image screen
-    imgtk = ImageTk.PhotoImage(image=img)  # add the image into tkinter
-    # showing the image in tkinter window
+    #giving size to the video/image screen
+    img = Img.fromarray(rotated1).resize((400, 400))
+    #add the image into tkinter
+    imgtk = ImageTk.PhotoImage(image=img)
+    #showing the image in tkinter window
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)
-    # resetting the image after 10 ms
+    #resetting the image after 10 ms
     lmain.after(10, show_frame)
 
-# arrays for led analyser read data
+#arrays for led analyser read data
 xchromArray = []
 ychromArray = []
 intensityArray = []
 csvArray = []
 
+#plot for output intensity data
 def plots():
-    f = Figure(figsize=(7, 3.5), dpi=80)  # Creating figure
-    a = f.add_subplot(111) # assigning a the add plot
+    #Creating figure
+    f = Figure(figsize=(7, 3.5), dpi=80) 
+    #assigning a the add plot
+    a = f.add_subplot(111)
     canvas_xy.destroy()
     polt_canvas()
     if len(intensityArray) != 0:
@@ -315,20 +411,19 @@ def plots():
         a.xaxis.set_major_locator(MaxNLocator(integer=True))
         for i, txt in enumerate(intensityArray):
             a.annotate(txt, (index_list[i], intensityArray[i]))
-        a.bar(index_list, intensityArray, color ='#00adb5')
-        
-        #plt.title("Plot Graph")
+        a.bar(index_list, intensityArray, color ='#00adb5')     
         a.set_ylabel("Intensity")
         a.set_xlabel("Measurement Number")
-        # Creating canvas for plot
+        #Creating canvas for plot
         canvas_1 = FigureCanvasTkAgg(f, master=canvas_xy)
-        canvas_1.draw()  # showing plot
-        canvas_1.get_tk_widget().pack(pady=5, padx=5)  # placing canvas on window
+        #showing plot
+        canvas_1.draw()
+        #placing canvas on window
+        canvas_1.get_tk_widget().pack(pady=5, padx=5)
         status.config(text = "plotting...")
         mainWindow.update()
 
-
-# read back from led analyser
+#read back from led analyser
 def la_buffer_read():
     status.config(text = "reading LA buffer...")
     mainWindow.config(cursor="wait")
@@ -364,12 +459,10 @@ def la_buffer_read():
         mainWindow.update()
         list_box.insert(len(intensityArray), response4 )
         laSer.flushInput()
-        #plt.show()
     print('+++++++++++++++++++++++++++')
     time.sleep(1)
 
 def saveButton():
-    #https://www.codegrepper.com/code-examples/python/save+file+python+tkinter
     filename = filedialog.asksaveasfilename(initialdir='/', title='Save File', filetypes=[("CSV files", "*.csv")])
     textContent = "I'm the text in the file"
     name2 = filename + ".csv"
@@ -377,10 +470,8 @@ def saveButton():
     toWrite = ', '.join(csvArray)
     myfile.write(toWrite)
     print("File saved as ", filename)
-
-
-
 #----------- / FUNCTION SETUP -----------
+
 
 #----------- MAIN-----------
 pos_listX = []  # creating list or array to store x and y axis
@@ -391,16 +482,12 @@ Current_list = []
 On_time_duration_list = []
 index = len(pos_listX)
 
-
 # function to get the x and y axis of image
 def getorigin(eventorigin):
     x0 = eventorigin.x  # storing x position in x0
     y0 = eventorigin.y  # storing y position in xy
     # storing x and y position in pos
     pos = 'X axis = ' + f'{x0}' + '   ' + 'Y axis = ' + f'{y0}'
-    # entryTexta1.set( x0 )
-    # entryTextb1.set( y0 )
-
     # combining x and y position for storing in array or list
     list_valueX = (x0)
     list_valueY = (y0)
@@ -413,9 +500,10 @@ def getorigin(eventorigin):
     a_list[index].configure(state='normal')
     a_list[index].insert(0, index)
     a_list[index].configure(state='readonly')
-
-    dynamic_entry(index + 1)  # inserting new row and col in frame2
-    frame2.bind("<Configure>", reset_scrollregion)  # bind reset scrollbar function
+    # inserting new row and col in frame2
+    dynamic_entry(index + 1)
+    # bind reset scrollbar function
+    frame2.bind("<Configure>", reset_scrollregion) 
     l1 = Label(mainWindow, text='(' + f'{x0}' + ',' + f'{y0}' + ')', font=('Times New Roman', 7), bg='lightgray')
     l1.place(x=x0, y=y0)
     runButt.config(state="active")
@@ -428,8 +516,6 @@ bind()
 def unbind():
     lmain.unbind("<Button 1>", b)
     
-
-
 #checking datatype
 def check(typee,data):
     checking = []
@@ -444,7 +530,7 @@ def check(typee,data):
     else:
         return True
 
-# button itterate
+#####-------MAIN RUN BUTTON-------#####
 def itterateCallBack():
     checks = []
     global index
@@ -461,7 +547,6 @@ def itterateCallBack():
     #look for empty fields
     if '' in checks:
         messagebox.showwarning('Empty Fields', 'Please fill all input fields.')
-    
     else:
         if check(int,checks[0::6])==True and check(int,checks[1::6])==True and check(float,checks[2::6])==True and check(float,checks[3::6])==True and check(float,checks[4::6])==True:
             new = Toplevel()
@@ -511,8 +596,9 @@ def itterateCallBack():
             yprint2 = np.round(yprintdivide)
             yprint3 = [round(y) for y in yprint2]
             print(yprint3)
+            #look up table
             for i, val in enumerate(yprint3):
-                #G-CODE
+                #x axis
                 if xprint3[i] <=49:
                     xprint3[i] = xprint3[i]*1.10
                 elif 50 < xprint3[i] < 56:
@@ -554,7 +640,7 @@ def itterateCallBack():
                 else:
                     xprint3[i] = xprint3[i]
 
-
+                #y axis
                 if yprint3[i] <=49:
                     yprint3[i] = yprint3[i]*1.2
                 elif 50 < yprint3[i] < 75:
@@ -710,7 +796,7 @@ def itterateCallBack():
         
         else:
             messagebox.showwarning('Wrong Datatype', 'Please use the correct input datatype')
-
+#####-------/ MAIN RUN BUTTON-------#####
 
     plots()
     mainWindow.config(cursor="")
